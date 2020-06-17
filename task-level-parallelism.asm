@@ -27,9 +27,9 @@ start:
 	# print sum
 	la $a0, product
 	jal sum_matrix
-
-	la $a0, $t0
-	jal print_matrix
+	move $a0, $v0 # move sum to print
+	li $v0, 1
+	syscall
 	
 	# exit
 	li $v0, 10
