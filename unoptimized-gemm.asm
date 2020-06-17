@@ -44,74 +44,34 @@ matrix_multiply:
 	
 	li $s0, 0 # i = 0; initialize 1st for loop
 	L1: li $s1, 0 # j = 0; restart 2nd for loop
-		L2:
-            # SUBROUTINE is called 16 times
-            # simulating instantiation on seperate processors
-
-            # save registers in stack
-            addi $sp, $sp, -24
-            sw $s0, 20($sp) # i
-            sw $s1, 16($sp) # j
-            sw $ra, 12($sp) # return address
-            sw $s3, 8($sp) # product address
-            sw $s4, 4($sp) # M1 address
-            sw $s5, 0($sp) # M2 address
-
-            # call matrix_multiply_inner
-            move $a0, $s0 # i
-            move $a1, $s1 # j
-            move $a2, $s3 # address of c (product matrix)
-            move $a3, $s4 # address of a (M1)
-            # M2 will be in $s5
-            jal matrix_multiply_inner
-            sw $v0, 0($v1) # c[i][j] = $v0
-
-            # restore registers from stack
-            lw $s5, 0($sp) # M2 address
-            lw $s4, 4($sp) # M1 address
-            lw $s3, 8($sp) # product address
-            lw $ra, 12($sp) # return address
-            lw $s1, 16($sp) # j
-            lw $s0, 20($sp) # i
-            addi $sp, $sp, 24
-
+		L2: li $s2, 0 # k = 0; restart 3rd for loop
+		sll $s3, $s0, 2 # $s3 = i * 4 (size of row of c)
+		addu $s3, $s3, $s1 # $s3 = i * size(row) + j
+		sll $s3, $s3, 2 # $s3 = byte offset of [i][j]
+		addu $s3, $a0, $s3 # $s3 = byte address of c[i][j]
+		lw $s6, 0($s3) # $s6 = 8 bytes of c[i][j]
+		L3: # inner loop
+            sll $t0, $s2, 2 # $t0 = k * 4 (size of row of b)
+            addu $t0, $t0, $s1 # $t0 = k * size(row) + j
+            sll $t0, $t0, 2 # $t0 = byte offset of [k][j]
+            addu $t0, $s5, $t0 # $t0 = byte address of b[k][j]
+            lw $t5, 0($t0) # $t5 = 8 bytes of b[k][j]
+            sll $t0, $s0, 2 # $t0 = i * 4 (size of row of a)
+            addu $t0, $t0, $s2 # $t0 = i * size(row) + k
+            sll $t0, $t0, 2 # $t0 = byte offset of [i][k]
+            addu $t0, $s4, $t0 # $t0 = byte address of a[i][k]
+            lw $t6, 0($t0) # $t6 = 8 bytes of a[i][k]
+            mul $t5, $t6, $t5 # $t5 = a[i][k] * b[k][j]
+            add $s6, $s6, $t5 # s6 = c[i][j] + a[i][k] * b[k][j]
+            addiu $s2, $s2, 1 # $k = k + 1
+            bne $s2, 4, L3 # if (k != 4) go to L3
+            sw $s6, 0($s3) # c[i][j] = $s6
             addiu $s1, $s1, 1 # $j = j + 1
             bne $s1, 4, L2 # if (j != 4) go to L2
             addiu $s0, $s0, 1 # $i = i + 1
             bne $s0, 4, L1 # if (i != 4) go to L1
 	jr $ra
 
-matrix_multiply_inner:
-    move $s0, $a0 # i
-    move $s1, $a1 # j
-    move $s3, $a2 # address of c (product matrix)
-    move $s4, $a3 # address of a (M1)
-    # M2 is in $s5
-    
-    # calculate address and value of c[i][j]
-    li $s2, 0 # k = 0; restart 3rd for loop
-    sll $s3, $s0, 2 # $s3 = i * 4 (size of row of c)
-    addu $s3, $s3, $s1 # $s3 = i * size(row) + j
-    sll $s3, $s3, 2 # $s3 = byte offset of [i][j]
-    addu $s3, $a2, $s3 # $s3 = byte address of c[i][j]
-    lw $s6, 0($s3) # $s6 = 4 bytes of c[i][j]
-    L3: # inner loop
-        sll $t0, $s2, 2 # $t0 = k * 4 (size of row of b)
-        addu $t0, $t0, $s1 # $t0 = k * size(row) + j
-        sll $t0, $t0, 2 # $t0 = byte offset of [k][j]
-        addu $t0, $s5, $t0 # $t0 = byte address of b[k][j]
-        lw $t5, 0($t0) # $t5 = 4 bytes of b[k][j]
-        sll $t0, $s0, 2 # $t0 = i * 4 (size of row of a)
-        addu $t0, $t0, $s2 # $t0 = i * size(row) + k
-        sll $t0, $t0, 2 # $t0 = byte offset of [i][k]
-        addu $t0, $s4, $t0 # $t0 = byte address of a[i][k]
-        lw $t6, 0($t0) # $t6 = 4 bytes of a[i][k]
-        mul $t5, $t6, $t5 # $t5 = a[i][k] * b[k][j]
-        add $s6, $s6, $t5 # s6 = c[i][j] + a[i][k] * b[k][j]
-        addiu $s2, $s2, 1 # $k = k + 1
-        bne $s2, 4, L3 # if (k != 4) go to L3
-    move $v0, $s6 # put result in $v0
-    move $v1, $s3 # address of c[i][j] to write $v0 into
 
 # procedure that reads a 4x4 matrix into $a0
 read_matrix:
