@@ -112,6 +112,7 @@ matrix_multiply_inner:
         bne $s2, 4, L3 # if (k != 4) go to L3
     move $v0, $s6 # put result in $v0
     move $v1, $s3 # address of c[i][j] to write $v0 into
+	jr $ra
 
 # procedure that reads a 4x4 matrix into $a0
 read_matrix:
