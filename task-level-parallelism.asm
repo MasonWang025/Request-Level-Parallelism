@@ -27,6 +27,14 @@ start:
 	# print output
 	la $a0, product
 	jal print_matrix
+
+	# print sum
+	la $a0, product
+	jal sum_matrix # sum will be in $v0
+	move $a0, $v0 # a0 contains the sum
+	li $v0, 1 
+	syscall
+	
 	
 	# exit
 	li $v0, 10
@@ -240,6 +248,8 @@ print_row_prompt:
 sum_matrix:
 	li $s0, 0 # index
 	move $s1, $a0 # matrix to sum
+
+	li $v0, 0 # v0 contains cumulative sum of all vector sums
 	matrix_sum_loop:
 		# get address $t2 (address with vector to sum)
 		sll $s2, $s0, 4 # # 16 bit offset per sum
@@ -253,6 +263,7 @@ sum_matrix:
 		move $a0, $s3 # address of vector to sum
 		li $a1, 4 # number of integers to sum
 		jal sum_vector
+		add $v0, $v0, $v1 # add vector sum to cumulative sum
 		
 		# restore return address
 		lw $ra, 0($sp)
@@ -268,7 +279,7 @@ sum_vector:
 	li $t0, 0 # index
 	move $t1, $a0 # array's address
 	
-	li $v0, 0 # cumulative sum in v0
+	li $v1, 0 # cumulative vector sum in v1
 	vector_sum_loop:
 		# get address $t1 with index offset
 		sll $t2, $t0, 2 # offset bytes in $t2
@@ -276,7 +287,7 @@ sum_vector:
 		
 		# add current int
 		lw $t4,0($t3) # current int
-		add $v0, $v0, $t4 # sum += current
+		add $v1, $v1, $t4 # sum += current
 		
 		addi $t0, $t0, 1 # index++
 		bne $t0, $a1, vector_sum_loop # loop if index has not reached bound
