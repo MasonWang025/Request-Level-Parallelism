@@ -23,18 +23,13 @@ start:
 	la $a0, product
 	# M1 * M2 -> product
 	jal matrix_multiply
-	
-	# print output
-	la $a0, product
-	jal print_matrix
 
 	# print sum
 	la $a0, product
-	jal sum_matrix # sum will be in $v0
-	move $a0, $v0 # a0 contains the sum
-	li $v0, 1 
-	syscall
-	
+	jal sum_matrix
+
+	la $a0, $t0
+	jal print_matrix
 	
 	# exit
 	li $v0, 10
@@ -133,64 +128,6 @@ read_vector:
 	lw $ra, 0($sp)
 	addi $sp, $sp, 4
 	
-	jr $ra
-
-# prints 4x4 matrix at $a0
-print_matrix:
-	li $s0, 0 # index
-	move $s1, $a0 # matrix to print
-	matrix_print_loop:
-		# get address $t2 (address with vector to print)
-		sll $s2, $s0, 4 # # 16 bit offset per print
-		add $s3, $s1, $s2 # add offset $t2 to $t1, store in $t3
-		
-		move $a0, $s0
-		# save return address
-		addi $sp, $sp, -4
-		sw $ra, 0($sp)
-		
-		jal print_row_prompt
-	
-		move $a0, $s3 # address of vector to print
-		li $a1, 4 # number of integers to print
-		jal print_vector
-		
-		# restore return address
-		lw $ra, 0($sp)
-		addi $sp, $sp, 4
-		
-		# print new line
-		li $v0, 4
-		la $a0, new_line
-		syscall
-		
-		addi $s0, $s0, 1 # index++
-		bne $s0, 4, matrix_print_loop # loop until 4 vector reads finish
-	
-	jr $ra
-
-# procedure to print the vector at $a0, length of vector is $a1
-print_vector:
-	li $t0, 0 # index
-	move $t1, $a0 # array's address
-	
-	vector_print_loop:
-		# get address $t1 with index offset
-		sll $t2, $t0, 2 # offset bytes in $t2
-		add $t3, $t1, $t2 # add offset $t2 to $t1, store in $t3
-		
-		# print current int
-		li $v0, 1
-		lw $a0, 0($t3)
-		syscall
-		
-		# print space
-		li $v0, 4
-		la $a0, space
-		syscall
-		
-		addi $t0, $t0, 1 # index++
-		bne $t0, $a1, vector_print_loop # loop if index has not reached bound
 	jr $ra
 
 # converts string $a0 (length $a1) to integer array and stores it in $a2
