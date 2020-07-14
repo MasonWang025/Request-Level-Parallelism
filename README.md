@@ -1,4 +1,4 @@
-# Request-Level-Parallelism
+# request-level-parallelism
 The subroutine calls simulate the instantiation of one of the inner loops on a separate
 processor.
 
